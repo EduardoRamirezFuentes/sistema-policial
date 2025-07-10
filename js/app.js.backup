@@ -1,0 +1,471 @@
+// URL base de la API
+const API_BASE_URL = 'http://localhost:8080/api';
+
+// Credenciales estáticas
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin';
+
+// Elementos del DOM
+const loginForm = document.getElementById('loginForm');
+const loginContainer = document.querySelector('.login-container');
+const dashboard = document.getElementById('dashboard');
+const policiaForm = document.getElementById('policiaForm');
+const searchBtn = document.getElementById('searchBtn');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+// Inicializar elementos de navegación
+const navLinks = document.querySelectorAll('.nav-link');
+const pageContents = document.querySelectorAll('.page-content');
+
+// Mostrar dashboard si ya está autenticado
+if (localStorage.getItem('isLoggedIn') === 'true') {
+    showDashboard();
+}
+
+// Manejador de login
+if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        
+        // Validación directa
+        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+            // Guardar estado de autenticación
+            localStorage.setItem('isLoggedIn', 'true');
+            // Mostrar dashboard
+            showDashboard();
+        } else {
+            // Mostrar mensaje de error
+            showError('Usuario o contraseña incorrectos');
+        }
+    });
+}
+
+// Función para mostrar errores
+function showError(message) {
+    // Eliminar mensajes de error anteriores
+    const existingError = document.getElementById('loginError');
+    if (existingError) existingError.remove();
+    
+    // Crear y mostrar nuevo mensaje de error
+    const errorElement = document.createElement('div');
+    errorElement.id = 'loginError';
+    errorElement.className = 'alert alert-danger mt-3';
+    errorElement.textContent = message;
+    
+    // Insertar después del formulario
+    const loginBox = document.querySelector('.login-box');
+    if (loginBox) {
+        loginBox.appendChild(errorElement);
+    }
+}
+
+// Mostrar Dashboard
+function showDashboard() {
+    if (loginContainer) loginContainer.classList.add('d-none');
+    if (dashboard) dashboard.classList.remove('d-none');
+    
+    document.body.classList.remove('login-page');
+    document.body.classList.add('dashboard-page');
+}
+
+// Cerrar sesión
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', function() {
+        localStorage.removeItem('isLoggedIn');
+        window.location.href = '/';
+    });
+}
+
+// Inicializar la navegación
+function initNavigation() {
+    // Mostrar la página de inicio por defecto
+    if (navLinks.length > 0 && pageContents.length > 0) {
+        // Mostrar la primera pestaña por defecto
+        navLinks[0].classList.add('active');
+        const defaultPage = navLinks[0].getAttribute('data-page');
+        
+        pageContents.forEach(content => {
+            if (content.id === defaultPage) {
+                content.classList.remove('d-none');
+            } else {
+                content.classList.add('d-none');
+            }
+        });
+        
+        // Agregar manejadores de eventos a los enlaces de navegación
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetPage = this.getAttribute('data-page');
+                
+                // Actualizar el enlace activo
+                navLinks.forEach(navLink => navLink.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Mostrar el contenido de la página seleccionada
+                pageContents.forEach(content => {
+                    if (content.id === targetPage) {
+                        content.classList.remove('d-none');
+                    } else {
+                        content.classList.add('d-none');
+                    }
+                });
+            });
+        });
+    }
+}
+
+// Función para mostrar el dashboard
+function showDashboard() {
+    const loginContainer = document.querySelector('.login-container');
+    const dashboard = document.getElementById('dashboard');
+    
+    if (loginContainer) loginContainer.classList.add('d-none');
+    if (dashboard) dashboard.classList.remove('d-none');
+    
+    document.body.classList.remove('login-page');
+    document.body.classList.add('dashboard-page');
+    
+    // Inicializar la navegación después de mostrar el dashboard
+    initNavigation();
+}
+
+// Función para probar la conexión con el servidor
+async function testConnection() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/test`);
+        const data = await response.json();
+        console.log('Conexión con el servidor:', data);
+    } catch (error) {
+        console.error('Error al conectar con el servidor:', error);
+    }
+}
+
+// Manejar el envío del formulario de policía
+if (policiaForm) {
+    policiaForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Mostrar indicador de carga
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+        
+        try {
+            // Validar campos requeridos
+            const requiredFields = ['nombreCompleto', 'curp', 'cuip', 'cup', 'fechaIngreso'];
+            const missingFields = [];
+            
+            requiredFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element && !element.value.trim()) {
+                    missingFields.push(field);
+                    element.classList.add('is-invalid');
+                } else if (element) {
+                    element.classList.remove('is-invalid');
+                }
+            });
+            
+            if (missingFields.length > 0) {
+                throw new Error(`Por favor complete los campos requeridos: ${missingFields.join(', ')}`);
+            }
+            
+            // Crear FormData para enviar archivos
+            const formDataToSend = new FormData(this);
+            
+            console.log('Enviando datos al servidor...');
+            
+            // Mostrar los datos que se están enviando
+            for (let [key, value] of formDataToSend.entries()) {
+                console.log(key, value);
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/oficiales`, {
+                    method: 'POST',
+                    body: formDataToSend
+                });
+                
+                console.log('Respuesta del servidor:', response.status, response.statusText);
+                
+                // Intentar obtener el cuerpo de la respuesta como JSON
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('Datos de respuesta:', data);
+                } catch (jsonError) {
+                    console.error('Error al analizar la respuesta JSON:', jsonError);
+                    const text = await response.text();
+                    console.error('Respuesta del servidor (texto):', text);
+                    throw new Error('Error en la respuesta del servidor: ' + text);
+                }
+                
+                if (!response.ok) {
+                    throw new Error(data.message || `Error del servidor: ${response.status} ${response.statusText}`);
+                }
+            
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    const successAlert = document.createElement('div');
+                    successAlert.className = 'alert alert-success mt-3';
+                    successAlert.textContent = 'Registro guardado exitosamente';
+                    
+                    // Insertar el mensaje después del formulario
+                    const formContainer = policiaForm.parentElement;
+                    formContainer.insertBefore(successAlert, policiaForm.nextSibling);
+                    
+                    // Limpiar el formulario
+                    policiaForm.reset();
+                    
+                    // Eliminar el mensaje después de 5 segundos
+                    setTimeout(() => {
+                        successAlert.remove();
+                    }, 5000);
+                } else {
+                    throw new Error(data.message || 'Error al guardar el registro');
+                }
+            } catch (error) {
+                console.error('Error al enviar datos al servidor:', error);
+                throw error; // Re-lanzar el error para que lo capture el bloque catch externo
+            }
+        } catch (error) {
+            console.error('Error al guardar el registro:', error);
+            
+            // Mostrar mensaje de error detallado
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'alert alert-danger mt-3';
+            
+            // Mostrar mensaje de error detallado en desarrollo
+            let errorMessage = error.message;
+            if (error.response) {
+                try {
+                    const errorData = await error.response.json();
+                    errorMessage = errorData.message || errorMessage;
+                    if (errorData.errorDetails) {
+                        errorMessage += `\nDetalles: ${JSON.stringify(errorData.errorDetails, null, 2)}`;
+                    }
+                } catch (e) {
+                    console.error('Error al procesar respuesta de error:', e);
+                }
+            }
+            
+            errorAlert.innerHTML = `
+                <strong>Error al guardar el registro:</strong>
+                <div class="mt-2">${errorMessage}</div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" onclick="this.parentElement.remove()">Cerrar</button>
+            `;
+            
+            // Insertar el mensaje después del formulario
+            const formContainer = policiaForm.parentElement;
+            const existingAlert = formContainer.querySelector('.alert');
+            
+            if (existingAlert) {
+                existingAlert.replaceWith(errorAlert);
+            } else {
+                formContainer.insertBefore(errorAlert, policiaForm.nextSibling);
+            }
+            
+            // Desplazarse al mensaje de error
+            errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } finally {
+            // Restaurar el botón
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+        }
+    });
+}
+
+// Handle Search
+if (searchBtn && searchInput) {
+    searchBtn.addEventListener('click', () => searchPolicia(searchInput.value.trim()));
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchPolicia(this.value.trim());
+        }
+    });
+}
+
+async function searchPolicia(searchTerm) {
+    if (!searchTerm) {
+        alert('Por favor ingrese un término de búsqueda');
+        return;
+    }
+    
+    // Mostrar indicador de carga
+    searchResults.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Buscando...</span></div></div>';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/oficiales/buscar?termino=${encodeURIComponent(searchTerm)}`);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.data && data.data.length > 0) {
+                displaySearchResults(data.data);
+            } else {
+                searchResults.innerHTML = `
+                    <div class="alert alert-info">
+                        No se encontraron resultados para "${searchTerm}"
+                    </div>
+                `;
+            }
+        } else {
+            throw new Error(data.message || 'Error en la respuesta del servidor');
+        }
+    } catch (error) {
+        console.error('Error al buscar oficiales:', error);
+        searchResults.innerHTML = `
+            <div class="alert alert-danger">
+                Error al buscar oficiales: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function displaySearchResults(resultados) {
+    if (!Array.isArray(resultados) || resultados.length === 0) {
+        searchResults.innerHTML = '<div class="alert alert-info">No se encontraron resultados</div>';
+        return;
+    }
+    
+    let html = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Resultados de la búsqueda</h4>
+            <span class="badge bg-primary">${resultados.length} registros encontrados</span>
+        </div>
+    `;
+    
+    resultados.forEach((policia) => {
+        // Formatear la fecha de ingreso
+        const fechaIngreso = policia.fecha_ingreso ? new Date(policia.fecha_ingreso).toLocaleDateString('es-MX') : 'No especificada';
+        
+        html += `
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">${policia.nombre_completo || 'Nombre no disponible'}</h5>
+                        <span class="badge bg-secondary">${policia.grado || 'Sin grado'}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Identificación:</strong></p>
+                            <ul class="list-unstyled">
+                                <li><strong>CURP:</strong> ${policia.curp || 'No especificado'}</li>
+                                <li><strong>CUIP:</strong> ${policia.cuip || 'No especificado'}</li>
+                                <li><strong>CUP:</strong> ${policia.cup || 'No especificado'}</li>
+                            </ul>
+                            
+                            <p class="mb-1 mt-3"><strong>Información Personal:</strong></p>
+                            <ul class="list-unstyled">
+                                <li><strong>Edad:</strong> ${policia.edad || 'No especificada'} años</li>
+                                <li><strong>Sexo:</strong> ${policia.sexo || 'No especificado'}</li>
+                                <li><strong>Estado Civil:</strong> ${policia.estado_civil || 'No especificado'}</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Información Laboral:</strong></p>
+                            <ul class="list-unstyled">
+                                <li><strong>Área de Adscripción:</strong> ${policia.area_adscripcion || 'No especificada'}</li>
+                                <li><strong>Cargo Actual:</strong> ${policia.cargo_actual || 'No especificado'}</li>
+                                <li><strong>Fecha de Ingreso:</strong> ${fechaIngreso}</li>
+                                <li><strong>Escolaridad:</strong> ${policia.escolaridad || 'No especificada'}</li>
+                            </ul>
+                            
+                            <p class="mb-1 mt-3"><strong>Contacto:</strong></p>
+                            <ul class="list-unstyled">
+                                <li><strong>Teléfono:</strong> ${policia.telefono_contacto || 'No especificado'}</li>
+                                <li><strong>Emergencia:</strong> ${policia.telefono_emergencia || 'No especificado'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <p class="mb-1"><strong>Función:</strong></p>
+                        <p class="mb-3">${policia.funcion || 'No especificada'}</p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        ${policia.pdf_nombre_archivo ? 
+                            `<a href="/uploads/${policia.pdf_nombre_archivo}" 
+                              target="_blank" 
+                              class="btn btn-primary btn-sm">
+                                <i class="fas fa-file-pdf me-1"></i> Ver Documento PDF
+                            </a>` : 
+                            '<span class="text-muted"><i class="fas fa-times-circle me-1"></i> Sin documento adjunto</span>'
+                        }
+                        <small class="text-muted">
+                            Registrado el: ${new Date(policia.fecha_registro).toLocaleString('es-MX')}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    searchResults.innerHTML = html;
+}
+
+// Función para probar la conexión con el servidor
+async function testConnection() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/test`);
+        const data = await response.json();
+        console.log('Conexión con el servidor:', data);
+        return data.success;
+    } catch (error) {
+        console.error('Error al conectar con el servidor:', error);
+        return false;
+    }
+}
+
+// Función para probar la conexión con el servidor
+async function testConnection() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/test`);
+        const data = await response.json();
+        console.log('Conexión con el servidor:', data);
+        return data.success;
+    } catch (error) {
+        console.error('Error al conectar con el servidor:', error);
+        return false;
+    }
+}
+
+// Inicializar la aplicación
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando aplicación...');
+    console.log('Aplicación inicializada');
+    
+    // Inicializar la navegación
+    initNavigation();
+    
+    // Probar la conexión con el servidor
+    testConnection().then(success => {
+        if (!success) {
+            console.warn('No se pudo establecer conexión con el servidor');
+        }
+    });
+    
+    // Configurar el evento de búsqueda si existe el botón de búsqueda
+    if (searchBtn && searchInput) {
+        searchBtn.addEventListener('click', () => searchPolicia(searchInput.value.trim()));
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPolicia(this.value.trim());
+            }
+        });
+    }
+});

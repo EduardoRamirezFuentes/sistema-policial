@@ -1,0 +1,1190 @@
+/* Estilos generales */
+
+/* Estilos para las tarjetas en la sección de Estatus Poli */
+#estatus-poli .card {
+    border: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#estatus-poli .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+#estatus-poli .card-header {
+    background-color: #720F36;
+    position: relative;
+    z-index: 1;
+    border-bottom: none;
+    padding: 1rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+#estatus-poli .card-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+}
+
+#estatus-poli .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+#estatus-poli .card-body {
+    padding: 1.5rem;
+    flex: 1;
+}
+
+#estatus-poli .card-footer {
+    background-color: transparent;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    padding: 1rem 1.5rem;
+}
+
+#estatus-poli .section-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+#estatus-poli .info-row {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+#estatus-poli .info-row:last-child {
+    margin-bottom: 0;
+}
+
+#estatus-poli .info-label {
+    font-weight: 600;
+    color: #495057;
+    margin-right: 0.5rem;
+}
+
+#estatus-poli .info-value {
+    color: #6c757d;
+}
+
+#estatus-poli hr {
+    opacity: 0.1;
+    margin: 1.25rem 0;
+}
+
+/* Estilos para la sección de búsqueda */
+#estatus-poli .search-container {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+#estatus-poli .search-title {
+    color: #2d3748;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+#estatus-poli .search-title i {
+    margin-right: 0.75rem;
+    color: #720F36;
+}
+
+/* Estilos para el contenedor de resultados */
+#estatus-poli #resultadoBusqueda {
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    margin-top: 1.5rem;
+}
+
+#estatus-poli .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+#estatus-poli .results-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+/* Estilos para el botón de PDF */
+#generarPDF {
+    background-color: #720F36;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+#generarPDF:hover {
+    background-color: #5a0d2b;
+    transform: translateY(-1px);
+}
+
+#generarPDF i {
+    margin-right: 0.5rem;
+}
+
+/* Estilos para el mensaje de sin resultados */
+.no-results-card {
+    background: white;
+    border-radius: 10px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.no-results-card i {
+    font-size: 3rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.no-results-card h5 {
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.no-results-card p {
+    color: #adb5bd;
+    margin-bottom: 0;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    #estatus-poli .card {
+        margin-bottom: 1.5rem;
+    }
+    
+    #estatus-poli .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    #generarPDF {
+        margin-top: 1rem;
+    }
+}
+
+/* Estilos para tablas en la sección de Estatus Poli (ocultas, solo para PDF) */
+#estatus-poli .table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1.5rem 0;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#estatus-poli .table thead th {
+    background-color: #f8f9fa;
+    color: #2d3748;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border-bottom: 2px solid #e9ecef;
+    vertical-align: middle;
+}
+
+#estatus-poli .table tbody td {
+    color: #2d3748;
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f1f1;
+    transition: all 0.2s ease;
+}
+
+#estatus-poli .table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#estatus-poli .table tbody tr:hover td {
+    background-color: #f8f9fa;
+}
+
+#estatus-poli .table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+#estatus-poli .table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+/* Estilos para el contenedor de resultados */
+#estatus-poli #resultadoBusqueda {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    position: relative;
+    z-index: 1;
+    margin-top: 1.5rem;
+}
+
+/* Estilos para los badges de estado */
+.estado-badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.estado-activo {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.estado-inactivo {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+/* Estilos para el input de búsqueda */
+#estatus-poli .input-group {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#estatus-poli .form-control {
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+#estatus-poli .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(114, 15, 54, 0.15);
+}
+
+#estatus-poli .btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#estatus-poli .btn-primary:hover {
+    background-color: var(--secondary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(114, 15, 54, 0.25);
+}
+
+/* Estilos para el encabezado de resultados */
+#estatus-poli .resultados-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+#estatus-poli .resultados-header h4 {
+    color: var(--primary-color);
+    margin: 0;
+    font-weight: 600;
+}
+
+/* Estilos para la tabla responsiva */
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Estilos para filas alternas */
+#estatus-poli .table tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+/* Estilos para la paginación */
+#estatus-poli .pagination {
+    margin-top: 1.5rem;
+    justify-content: center;
+}
+
+#estatus-poli .page-link {
+    color: var(--primary-color);
+    border: 1px solid #e2e8f0;
+    margin: 0 0.25rem;
+    border-radius: 6px !important;
+    min-width: 36px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+#estatus-poli .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+#estatus-poli .page-link:hover {
+    background-color: #f8f9fa;
+    border-color: #e2e8f0;
+}
+
+/* Estilos para el mensaje de carga */
+#estatus-poli .loading-message {
+    padding: 2rem;
+    text-align: center;
+    color: #4a5568;
+}
+
+#estatus-poli .spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 0.2em;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+/* Login container styles */
+#loginContainer {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative;
+    z-index: 1000;
+}
+
+/* Dashboard styles */
+#dashboard {
+    display: none; /* Will be shown via JavaScript */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    z-index: 10;
+}
+
+/* When dashboard is active */
+.dashboard-page #dashboard {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ensure login is hidden when dashboard is shown */
+.dashboard-page #loginContainer {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+:root {
+    --primary-color: #720F36;
+    --primary-light: rgba(114, 15, 54, 0.85);
+    --primary-lighter: rgba(114, 15, 54, 0.1);
+    --secondary-color: #9A1A4A;
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    --text-color: #2d3748;
+    --light-text: #fff;
+    --shadow: 0 8px 32px 0 rgba(114, 15, 54, 0.15);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Fondo para la página de login y dashboard */
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-color: #720F36;
+    background-image: url('../img/ssc.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: var(--light-text);
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+}
+
+/* Estilos para títulos y texto en el dashboard */
+#dashboard h1,
+#dashboard h2,
+#dashboard h3,
+#dashboard h4,
+#dashboard h5,
+#dashboard h6,
+#dashboard .form-label,
+#dashboard .form-text,
+#dashboard .text-muted,
+#dashboard .table,
+#dashboard .table th,
+#dashboard .table td {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Estilos específicos para las tarjetas de formulario */
+.glass-card {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Mejorar contraste de los controles de formulario */
+.form-control,
+.form-select {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos para los resultados de búsqueda de oficiales */
+#resultadosBusqueda {
+    position: relative;
+    z-index: 1000;
+}
+
+#resultadosBusqueda .list-group-item {
+    color: #000 !important;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    cursor: pointer;
+}
+
+#resultadosBusqueda .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+#resultadosBusqueda .list-group-item .oficial-nombre {
+    font-weight: 600;
+    color: #0d6efd !important;
+}
+
+#resultadosBusqueda .list-group-item .oficial-info {
+    font-size: 0.85rem;
+    color: #6c757d !important;
+    display: block;
+}
+
+/* Estilos para las pestañas activas */
+.nav-link.active {
+    font-weight: 600;
+    border-bottom: 2px solid #fff;
+}
+
+/* Mejorar visibilidad de los placeholders */
+::placeholder {
+    color: #6c757d !important;
+    opacity: 1;
+}
+
+/* Asegurar que el texto en los botones sea legible */
+.btn {
+    color: #fff;
+    border: none;
+}
+
+.btn-primary {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Superposición para mejorar la legibilidad */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(114, 15, 54, 0.7);
+    z-index: -1;
+}
+
+/* Capa de superposición para el contenido */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: -1;
+    backdrop-filter: blur(3px);
+    pointer-events: none;
+}
+
+/* Elementos de fondo */
+.bg-elements {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    overflow: hidden;
+    opacity: 0.3;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    opacity: 0.1;
+    filter: blur(50px);
+}
+
+.circle-1 {
+    width: 300px;
+    height: 300px;
+    top: -100px;
+    left: -100px;
+    animation: float 15s infinite alternate;
+}
+
+.circle-2 {
+    width: 500px;
+    height: 500px;
+    bottom: -200px;
+    right: -100px;
+    animation: float 20s infinite alternate-reverse;
+}
+
+.circle-3 {
+    width: 200px;
+    height: 200px;
+    top: 50%;
+    right: 10%;
+    animation: float 25s infinite alternate;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+    100% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+}
+
+/* Estilos del Login */
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(114, 15, 54, 0.8) 0%, rgba(154, 26, 74, 0.8) 100%);
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.login-box {
+    text-align: center;
+}
+
+.login-header {
+    text-align: center;
+    color: white;
+}
+
+.login-header .logo-container {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.login-header .logo-container i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+}
+
+.login-box h2 {
+    color: var(--light-text);
+    margin-bottom: 2rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 3px rgba(114, 15, 54, 0.3);
+    border-color: var(--primary-color);
+}
+
+/* Estilos para el botón de toggle de estado */
+.toggle-status {
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.toggle-status:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-status:active {
+    transform: translateY(0);
+}
+
+/* Estilos específicos para los botones de activar/desactivar */
+.btn-outline-success.toggle-status {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.btn-outline-success.toggle-status:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-outline-danger.toggle-status {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.btn-outline-danger.toggle-status:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Espaciado para el contenedor de tarjetas */
+#contenedorTarjetas {
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+/* Estilos para los subtítulos en las tarjetas */
+#estatus-poli .card-body h6 {
+    color: #070463 !important;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Estilos para el contenedor del gráfico */
+#chartContainer {
+    position: relative;
+    width: 100%;
+    min-height: 350px;
+    margin: 0 auto;
+}
+
+/* Estilos para el canvas del gráfico */
+#estadoOficialesChart {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 300px;
+    max-height: 400px;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Estilos para el indicador de carga */
+#chartLoading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+}
+
+#chartLoading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: #070463;
+}
+
+#chartLoading p {
+    margin-top: 1rem;
+    color: #070463;
+    font-weight: 500;
+}
+
+/* Estilos para mensajes de error */
+#chartError {
+    position: relative;
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    background-color: #f8d7da;
+    border: 1px solid #f5c2c7;
+    color: #842029;
+}
+
+#chartError .btn {
+    margin-left: 0.5rem;
+}
+
+/* Asegurar que el gráfico sea responsive */
+@media (max-width: 768px) {
+    #estadoOficialesChart {
+        max-height: 300px;
+    }
+}
+
+/* Estilos para el contenido del PDF */
+#tablaResultados thead th {
+    background-color: #070463 !important;
+    color: white !important;
+    border: 1px solid #070463;
+    padding: 10px;
+    text-align: left;
+}
+
+#tablaResultados tbody td {
+    border: 1px solid #dee2e6;
+    padding: 8px 10px;
+}
+
+#tablaResultados {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+}
+
+/* Asegurar que el contenedor del PDF tenga fondo blanco */
+#tablaResultados_wrapper {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+/* Estilo para el título de resultados de búsqueda */
+#estatus-poli #resultadoBusqueda h4 {
+    color: #070463 !important;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+/* Asegurar que el footer de la tarjeta sea visible */
+.card-footer {
+    background: transparent !important;
+    border-top: 1px solid rgba(0,0,0,0.05) !important;
+    padding: 1rem !important;
+    margin-top: auto;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 30px;
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(114, 15, 54, 0.3);
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.5s;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Estilos del Dashboard */
+.dashboard-page {
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+}
+
+.navbar {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+    padding: 0.8rem 1.5rem;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--light-text) !important;
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-weight: 500;
+    margin: 0 10px;
+    padding: 0.5rem 1rem !important;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover, .nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white !important;
+}
+
+/* Tarjetas del Dashboard */
+.card {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 1rem 1.5rem;
+}
+
+/* Formularios */
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* Barra de navegación */
+.navbar {
+    padding: 0.8rem 2rem;
+    margin-bottom: 2rem;
+    border-radius: 15px;
+    background: rgba(52, 46, 222, 0.1) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(52, 46, 222, 0.15);
+}
+
+.navbar-toggler {
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+.user-info {
+    color: white;
+    text-align: right;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-role {
+    opacity: 0.8;
+    font-size: 0.8rem;
+}
+
+/* Botón de cerrar sesión */
+.btn-logout {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+#logoutBtn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+#logoutBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Efectos de vidrio para las secciones */
+.glass-effect {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Contenedor de contenido */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+/* Tarjetas con efecto de vidrio */
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+}
+
+/* Estilos para los formularios */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem var(--primary-lighter);
+}
+
+.input-group-text {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    color: var(--primary-color);
+}
+
+/* Estilos para el formulario de evaluaciones */
+#infoOficial {
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+#infoOficial .oficial-info {
+    margin: 0;
+    line-height: 1.4;
+}
+
+#infoOficial .oficial-info small {
+    display: block;
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+#resultadosBusqueda {
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+}
+
+#resultadosBusqueda .list-group-item {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#resultadosBusqueda .list-group-item:hover {
+    background-color: var(--primary-lighter);
+}
+
+.table {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.table thead th {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    font-weight: 500;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(52, 46, 222, 0.05) !important;
+}
+
+.btn-action {
+    padding: 0.25rem 0.5rem;
+    margin: 0 0.15rem;
+    border-radius: 0.25rem;
+}
+
+.btn-action i {
+    font-size: 0.9em;
+}
+
+/* Estilos para el mensaje de carga */
+.loading-spinner {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0.25rem solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container {
+        margin: 0 15px;
+        padding: 1.5rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+}

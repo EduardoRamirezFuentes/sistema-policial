@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: sistema-policial
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: RENDER_DB_HOST
+        fromDatabase:
+          name: sistema-policial-db
+          property: connectionString
+          envVar: DB_HOST
+      - key: RENDER_DB_USER
+        fromDatabase:
+          name: sistema-policial-db
+          property: connectionString
+          envVar: DB_USER
+      - key: RENDER_DB_PASSWORD
+        fromDatabase:
+          name: sistema-policial-db
+          property: connectionString
+          envVar: DB_PASSWORD
+      - key: RENDER_DB_NAME
+        fromDatabase:
+          name: sistema-policial-db
+          property: connectionString
+          envVar: DB_NAME
+      - key: RENDER_DB_PORT
+        fromDatabase:
+          name: sistema-policial-db
+          property: connectionString
+          envVar: DB_PORT
+
+databases:
+  - name: sistema-policial-db
+    databaseName: sistema_policial
+    user: admin
+    plan: free

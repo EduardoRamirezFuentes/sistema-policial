@@ -13,11 +13,24 @@ require('dotenv').config();
 
 // Configuración de la conexión a PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME}`,
-  ssl: {
-    rejectUnauthorized: false // Necesario para Render PostgreSQL
-  }
+  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'sistema_policial'}`,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Verificar conexión a la base de datos
+const testConnection = async () => {
+  try {
+    const client = await pool.connect();
+    console.log('✅ Conexión exitosa a PostgreSQL');
+    client.release();
+  } catch (error) {
+    console.error('❌ Error al conectar a la base de datos:', error.message);
+    console.log('ℹ️ Verifica que la variable DATABASE_URL esté correctamente configurada en Render');
+    console.log('ℹ️ DATABASE_URL actual:', process.env.DATABASE_URL ? '***configurada***' : 'no configurada');
+  }
+};
+
+testConnection();
 
 // Probar la conexión a la base de datos
 pool.connect((err, client, release) => {
@@ -58,24 +71,35 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permitir peticiones sin 'origin' (como curl o Postman)
-    if (!origin) return callback(null, true);
-    
-    // Verificar si el origen está en la lista blanca
-    if (allowedOrigins.some(allowedOrigin => 
-      origin === allowedOrigin || 
-      origin.startsWith(allowedOrigin.replace(/\/+$/, ''))
-    )) {
+    // En desarrollo, permitir cualquier origen o sin origen
+    if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     
-    console.warn(`Origen no permitido: ${origin}`);
-    return callback(new Error('No permitido por CORS'), false);
+    // En producción, verificar el origen
+    if (!origin) {
+      console.warn('⚠️  Petición sin encabezado Origin');
+      return callback(new Error('Se requiere el encabezado Origin en producción'), false);
+    }
+    
+    // Verificar si el origen está en la lista blanca
+    const isAllowed = allowedOrigins.some(allowedOrigin => 
+      origin === allowedOrigin || 
+      origin.startsWith(allowedOrigin.replace(/\/+$/, ''))
+    );
+    
+    if (isAllowed) {
+      return callback(null, true);
+    } else {
+      console.warn(`🚫 Origen no permitido: ${origin}`);
+      return callback(new Error('Origen no permitido por CORS'), false);
+    }
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  maxAge: 86400
 };
 
 // Aplicar CORS a todas las rutas

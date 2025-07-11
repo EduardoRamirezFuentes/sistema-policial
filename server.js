@@ -45,44 +45,64 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // Límite de 10MB
 });
 
-// Configuración de CORS para producción
+// Configuración de CORS mejorada
+const allowedOrigins = [
+  'https://sistema-policial.onrender.com',
+  'http://localhost:10000',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'https://sistema-policial.onrender.com/' // Con y sin barra final
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Lista blanca de dominios permitidos
-    const allowedOrigins = [
-      'http://localhost:8080', // Desarrollo local
-      'http://localhost:3000',  // Si usas React/Vue en otro puerto
-      'https://sistema-policial.onrender.com' // Tu dominio de producción en Render
-    ];
-    
-    // Permitir peticiones sin origen (como aplicaciones móviles o Postman) solo en desarrollo
-    if (process.env.NODE_ENV !== 'production' && !origin) return callback(null, true);
-    
-    // En producción, verificar el origen
-    if (process.env.NODE_ENV === 'production' && !origin) {
-      return callback(new Error('Se requiere el encabezado Origin'), false);
+    // Permitir peticiones sin 'origin' (como curl o Postman) en desarrollo
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
     }
     
-    // Verificar si el origen está en la lista blanca
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `El origen ${origin} no tiene permiso de acceso.`;
-      console.warn(msg);
-      return callback(new Error(msg), false);
+    // En producción, verificar el origen
+    if (process.env.NODE_ENV === 'production') {
+      // Si no hay origen, rechazar en producción
+      if (!origin) {
+        return callback(new Error('Se requiere el encabezado Origin en producción'), false);
+      }
+      
+      // Verificar si el origen está en la lista blanca
+      const originMatch = allowedOrigins.some(allowedOrigin => 
+        origin === allowedOrigin || 
+        origin.startsWith(allowedOrigin.replace(/\/+$/, '')) // Manejar con/sin barra final
+      );
+      
+      if (!originMatch) {
+        const msg = `Origen no permitido: ${origin}`;
+        console.warn(msg);
+        return callback(new Error(msg), false);
+      }
     }
     
     return callback(null, true);
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'X-Auth-Token'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Total-Count'],
   credentials: true,
-  optionsSuccessStatus: 200 // Para navegadores antiguos
+  maxAge: 600, // Tiempo de caché para preflight (en segundos)
+  optionsSuccessStatus: 200
 };
 
-// Aplicar middleware
+// Aplicar CORS a todas las rutas
 app.use(cors(corsOptions));
 
 // Manejador de opciones preflight para todas las rutas
-app.options('*', cors(corsOptions));
+app.options('*', cors(corsOptions)); // Habilitar pre-flight para todas las rutas
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -13,8 +13,10 @@ require('dotenv').config();
 
 // Configuración de la conexión a PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.RENDER_DB_USER || process.env.DB_USER}:${process.env.RENDER_DB_PASSWORD || process.env.DB_PASSWORD}@${process.env.RENDER_DB_HOST || process.env.DB_HOST}:${process.env.RENDER_DB_PORT || process.env.DB_PORT || 5432}/${process.env.RENDER_DB_NAME || process.env.DB_NAME}`,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME}`,
+  ssl: {
+    rejectUnauthorized: false // Necesario para Render PostgreSQL
+  }
 });
 
 // Probar la conexión a la base de datos
@@ -51,50 +53,28 @@ const allowedOrigins = [
   'http://localhost:10000',
   'http://localhost:3000',
   'http://localhost:8080',
-  'https://sistema-policial.onrender.com/' // Con y sin barra final
+  'https://sistema-policial.onrender.com/'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permitir peticiones sin 'origin' (como curl o Postman) en desarrollo
-    if (!origin && process.env.NODE_ENV !== 'production') {
+    // Permitir peticiones sin 'origin' (como curl o Postman)
+    if (!origin) return callback(null, true);
+    
+    // Verificar si el origen está en la lista blanca
+    if (allowedOrigins.some(allowedOrigin => 
+      origin === allowedOrigin || 
+      origin.startsWith(allowedOrigin.replace(/\/+$/, ''))
+    )) {
       return callback(null, true);
     }
     
-    // En producción, verificar el origen
-    if (process.env.NODE_ENV === 'production') {
-      // Si no hay origen, rechazar en producción
-      if (!origin) {
-        return callback(new Error('Se requiere el encabezado Origin en producción'), false);
-      }
-      
-      // Verificar si el origen está en la lista blanca
-      const originMatch = allowedOrigins.some(allowedOrigin => 
-        origin === allowedOrigin || 
-        origin.startsWith(allowedOrigin.replace(/\/+$/, '')) // Manejar con/sin barra final
-      );
-      
-      if (!originMatch) {
-        const msg = `Origen no permitido: ${origin}`;
-        console.warn(msg);
-        return callback(new Error(msg), false);
-      }
-    }
-    
-    return callback(null, true);
+    console.warn(`Origen no permitido: ${origin}`);
+    return callback(new Error('No permitido por CORS'), false);
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'X-Auth-Token'
-  ],
-  exposedHeaders: ['Content-Range', 'X-Total-Count'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true,
-  maxAge: 600, // Tiempo de caché para preflight (en segundos)
   optionsSuccessStatus: 200
 };
 

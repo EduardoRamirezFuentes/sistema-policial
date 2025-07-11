@@ -1,30 +1,30 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const multer = require('multer');
 const cors = require('cors');
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 // Cargar variables de entorno
 require('dotenv').config();
 
-// Configuración de la conexión a MySQL
-const dbConfig = {
-    host: process.env.RENDER_DB_HOST || process.env.DB_HOST,
-    user: process.env.RENDER_DB_USER || process.env.DB_USER,
-    password: process.env.RENDER_DB_PASSWORD || process.env.DB_PASSWORD,
-    database: process.env.RENDER_DB_NAME || process.env.DB_NAME,
-    port: process.env.RENDER_DB_PORT || process.env.DB_PORT || 3306,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-};
+// Configuración de la conexión a PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || `postgresql://${process.env.RENDER_DB_USER || process.env.DB_USER}:${process.env.RENDER_DB_PASSWORD || process.env.DB_PASSWORD}@${process.env.RENDER_DB_HOST || process.env.DB_HOST}:${process.env.RENDER_DB_PORT || process.env.DB_PORT || 5432}/${process.env.RENDER_DB_NAME || process.env.DB_NAME}`,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-// Crear el pool de conexiones
-const pool = mysql.createPool(dbConfig);
+// Probar la conexión a la base de datos
+pool.connect((err, client, release) => {
+  if (err) {
+    return console.error('Error al conectar a la base de datos:', err.stack);
+  }
+  console.log('Conexión exitosa a PostgreSQL');
+  release();
+});
 
 // Configuración de Multer para subir archivos
 const storage = multer.diskStorage({
@@ -45,8 +45,45 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // Límite de 10MB
 });
 
-// Middleware
-app.use(cors());
+// Configuración de CORS para producción
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Lista blanca de dominios permitidos
+    const allowedOrigins = [
+      'http://localhost:8080', // Desarrollo local
+      'http://localhost:3000',  // Si usas React/Vue en otro puerto
+      'https://sistema-policial.onrender.com' // Tu dominio de producción en Render
+    ];
+    
+    // Permitir peticiones sin origen (como aplicaciones móviles o Postman) solo en desarrollo
+    if (process.env.NODE_ENV !== 'production' && !origin) return callback(null, true);
+    
+    // En producción, verificar el origen
+    if (process.env.NODE_ENV === 'production' && !origin) {
+      return callback(new Error('Se requiere el encabezado Origin'), false);
+    }
+    
+    // Verificar si el origen está en la lista blanca
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `El origen ${origin} no tiene permiso de acceso.`;
+      console.warn(msg);
+      return callback(new Error(msg), false);
+    }
+    
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200 // Para navegadores antiguos
+};
+
+// Aplicar middleware
+app.use(cors(corsOptions));
+
+// Manejador de opciones preflight para todas las rutas
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -75,14 +112,14 @@ app.post('/api/oficiales', upload.single('pdfFile'), async (req, res) => {
     console.log('Cuerpo de la solicitud (body):', req.body);
     console.log('Archivo adjunto:', req.file);
     
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     
     try {
-        await connection.beginTransaction();
+        await client.query('BEGIN');
         
         // Verificar conexión a la base de datos
-        const [testResult] = await connection.query('SELECT 1 as test');
-        console.log('Conexión a la base de datos exitosa:', testResult);
+        const testResult = await client.query('SELECT 1 as test');
+        console.log('Conexión a la base de datos exitosa:', testResult.rows[0]);
         
         // Validar campos requeridos
         const camposRequeridos = [
@@ -118,87 +155,111 @@ app.post('/api/oficiales', upload.single('pdfFile'), async (req, res) => {
             throw new Error('El formato de fecha debe ser YYYY-MM-DD');
         }
 
-        // Crear objeto con los datos del oficial
-        const oficialData = {
-            nombre_completo: req.body.nombreCompleto,
-            curp: req.body.curp,
-            cuip: req.body.cuip,
-            cup: req.body.cup,
-            edad: edad,
-            sexo: req.body.sexo,
-            estado_civil: req.body.estadoCivil,
-            area_adscripcion: req.body.areaAdscripcion,
-            grado: req.body.grado,
-            cargo_actual: req.body.cargoActual,
-            fecha_ingreso: req.body.fechaIngreso,
-            escolaridad: req.body.escolaridad,
-            telefono_contacto: req.body.telefonoContacto.replace(/\D/g, ''), // Solo números
-            telefono_emergencia: req.body.telefonoEmergencia.replace(/\D/g, ''), // Solo números
-            funcion: req.body.funcion,
-            pdf_nombre_archivo: req.file ? req.file.filename : null,
-            pdf_tipo: req.file ? req.file.mimetype : null,
-            pdf_tamanio: req.file ? req.file.size : null,
-            usuario_registro: 1, // ID del usuario administrador
-            activo: 1
-        };
-
-        console.log('Datos del oficial a insertar:', JSON.stringify(oficialData, null, 2));
-
-        console.log('Datos a insertar en la base de datos:', oficialData);
-        
-        // Primero verificar si ya existe un registro con la misma CURP, CUIP o CUP
-        const [existing] = await connection.query(
-            `SELECT id FROM oficiales WHERE curp = ? OR cuip = ? OR cup = ? LIMIT 1`,
-            [oficialData.curp, oficialData.cuip, oficialData.cup]
+        // Verificar si ya existe un oficial con el mismo CURP, CUIP o CUP
+        const existeOficial = await client.query(
+            'SELECT id FROM oficiales WHERE curp = $1 OR cuip = $2 OR cup = $3',
+            [req.body.curp, req.body.cuip, req.body.cup]
         );
 
-        if (existing && existing.length > 0) {
-            throw new Error('Ya existe un registro con la misma CURP, CUIP o CUP');
+        if (existeOficial.rows.length > 0) {
+            throw new Error('Ya existe un oficial con el mismo CURP, CUIP o CUP');
         }
 
-        // Insertar el nuevo registro
-        const [result] = await connection.query('INSERT INTO oficiales SET ?', [oficialData]);
+        // Insertar el nuevo oficial en la base de datos
+        const result = await client.query(
+            `INSERT INTO oficiales (
+                nombre_completo, curp, cuip, cup, edad, sexo, estado_civil,
+                area_adscripcion, grado, cargo_actual, fecha_ingreso,
+                escolaridad, telefono_contacto, telefono_emergencia, funcion,
+                activo, pdf_nombre_archivo, usuario_registro
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+            RETURNING id`,
+            [
+                req.body.nombreCompleto,
+                req.body.curp,
+                req.body.cuip,
+                req.body.cup,
+                edad,
+                req.body.sexo,
+                req.body.estadoCivil,
+                req.body.areaAdscripcion,
+                req.body.grado,
+                req.body.cargoActual,
+                req.body.fechaIngreso,
+                req.body.escolaridad,
+                req.body.telefonoContacto.replace(/\D/g, ''), // Solo números
+                req.body.telefonoEmergencia.replace(/\D/g, ''), // Solo números
+                req.body.funcion,
+                true, // activo por defecto
+                req.file ? req.file.filename : null,
+                1 // ID del usuario administrador
+            ]
+        );
+
+        const idOficial = result.rows[0].id;
+        console.log('Oficial guardado con ID:', idOficial);
         
-        await connection.commit();
+        // Si se subió un archivo, moverlo a la carpeta de uploads
+        if (req.file) {
+            const uploadsDir = path.join(__dirname, 'uploads');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+            
+            const oldPath = req.file.path;
+            const newPath = path.join(uploadsDir, req.file.filename);
+            
+            // Mover el archivo temporal a la carpeta de uploads
+            fs.renameSync(oldPath, newPath);
+            console.log('Archivo guardado en:', newPath);
+        }
         
-        console.log('Registro insertado correctamente. ID:', result.insertId);
+        await client.query('COMMIT');
         
-        res.json({ 
+        res.status(201).json({ 
             success: true, 
-            message: 'Oficial registrado exitosamente',
-            id: result.insertId
+            message: 'Oficial guardado exitosamente',
+            id: idOficial
         });
+        
     } catch (error) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
+        
         console.error('Error al guardar el oficial:');
         console.error('Mensaje de error:', error.message);
         console.error('Stack trace:', error.stack);
         
-        // Mostrar más detalles del error de MySQL si está disponible
-        if (error.sql) {
-            console.error('Consulta SQL:', error.sql);
-            console.error('Código de error:', error.code);
-            console.error('Número de error:', error.errno);
-        }
-        
         // Eliminar el archivo subido si hubo un error
         if (req.file && fs.existsSync(req.file.path)) {
-            console.log('Eliminando archivo subido debido al error:', req.file.path);
             fs.unlinkSync(req.file.path);
         }
+        
+        // Detalles adicionales del error para depuración
+        const errorDetails = {
+            message: error.message,
+            code: error.code,
+            detail: error.detail,
+            hint: error.hint,
+            position: error.position,
+            internalQuery: error.internalQuery,
+            where: error.where,
+            schema: error.schema,
+            table: error.table,
+            column: error.column,
+            dataType: error.dataType,
+            constraint: error.constraint
+        };
+        
+        console.error('Detalles del error de PostgreSQL:', errorDetails);
         
         res.status(500).json({ 
             success: false, 
             message: 'Error al guardar el oficial: ' + error.message,
             error: error.message,
-            errorDetails: process.env.NODE_ENV === 'development' ? {
-                code: error.code,
-                errno: error.errno,
-                sql: error.sql
-            } : undefined
+            details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
         });
     } finally {
-        connection.release();
+        client.release();
     }
 });
 
@@ -225,13 +286,12 @@ app.post('/api/formacion', express.json(), async (req, res) => {
         await connection.beginTransaction();
         
         // Verificar que el oficial exista
-        const [oficial] = await connection.query(
-            'SELECT id FROM oficiales WHERE id = ?',
+        const oficial = await pool.query(
+            'SELECT id FROM oficiales WHERE id = $1',
             [formacion.id_oficial]
         );
         
-        if (oficial.length === 0) {
-            await connection.rollback();
+        if (oficial.rows.length === 0) {
             return res.status(404).json({ 
                 success: false, 
                 message: 'El oficial especificado no existe' 
@@ -239,8 +299,11 @@ app.post('/api/formacion', express.json(), async (req, res) => {
         }
         
         // Insertar el registro de formación
-        const [result] = await connection.query(
-            'INSERT INTO formacion (id_oficial, curso, tipo_curso, institucion, fecha_curso, resultado) VALUES (?, ?, ?, ?, ?, ?)',
+        const result = await pool.query(
+            `INSERT INTO formacion 
+             (id_oficial, curso, tipo_curso, institucion, fecha_curso, resultado) 
+             VALUES ($1, $2, $3, $4, $5, $6) 
+             RETURNING id`,
             [
                 formacion.id_oficial,
                 formacion.curso, 
@@ -251,11 +314,10 @@ app.post('/api/formacion', express.json(), async (req, res) => {
             ]
         );
         
-        await connection.commit();
         res.status(201).json({ 
             success: true, 
             message: 'Registro de formación guardado exitosamente',
-            id: result.insertId 
+            id: result.rows[0].id 
         });
     } catch (error) {
         if (connection) await connection.rollback();
@@ -277,23 +339,26 @@ app.get('/api/formacion', async (req, res) => {
     query += 'LEFT JOIN oficiales o ON f.id_oficial = o.id ';
     
     const params = [];
+    let paramCount = 1;
     
     if (id_oficial) {
-        query += 'WHERE f.id_oficial = ? ';
+        query += `WHERE f.id_oficial = $${paramCount} `;
         params.push(id_oficial);
+        paramCount++;
     }
     
     query += 'ORDER BY f.fecha_curso DESC';
     
     try {
-        const [rows] = await pool.query(query, params);
-        res.json({ success: true, data: rows });
+        const result = await pool.query(query, params);
+        res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error al obtener los registros de formación:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Error al obtener los registros de formación',
-            error: error.message 
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error : undefined
         });
     }
 });
@@ -509,54 +574,73 @@ app.put('/api/oficiales/:id/estado', async (req, res) => {
     }
     
     try {
-        const [result] = await pool.query(
-            'UPDATE oficiales SET activo = ? WHERE id = ?',
+        const result = await pool.query(
+            'UPDATE oficiales SET activo = $1 WHERE id = $2 RETURNING *',
             [activo, id]
         );
         
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ success: false, message: 'Oficial no encontrado' });
         }
         
         res.json({ success: true, message: 'Estado actualizado correctamente' });
     } catch (error) {
         console.error('Error al actualizar el estado del oficial:', error);
-        res.status(500).json({ success: false, message: 'Error al actualizar el estado del oficial' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al actualizar el estado del oficial',
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error : undefined
+        });
     }
 });
 
 // Ruta para obtener estadísticas de oficiales (activos e inactivos)
 app.get('/api/oficiales/estadisticas', async (req, res) => {
     console.log('Solicitud recibida en /api/oficiales/estadisticas');
-    let connection;
+    const client = await pool.connect();
+    
     try {
-        console.log('Obteniendo conexión a la base de datos...');
-        connection = await pool.getConnection();
         console.log('Conexión a la base de datos establecida');
+        
+        // Iniciar una transacción para asegurar consistencia en los datos
+        await client.query('BEGIN');
         
         // Contar oficiales activos
         console.log('Contando oficiales activos...');
-        const [activos] = await connection.query(
-            'SELECT COUNT(*) as count FROM oficiales WHERE activo = 1'
+        const activosResult = await client.query(
+            'SELECT COUNT(*) as count FROM oficiales WHERE activo = true'
         );
-        console.log('Oficiales activos:', activos[0].count);
+        const activos = parseInt(activosResult.rows[0].count);
+        console.log('Oficiales activos:', activos);
         
         // Contar oficiales inactivos
         console.log('Contando oficiales inactivos...');
-        const [inactivos] = await connection.query(
-            'SELECT COUNT(*) as count FROM oficiales WHERE activo = 0 OR activo IS NULL'
+        const inactivosResult = await client.query(
+            'SELECT COUNT(*) as count FROM oficiales WHERE activo = false OR activo IS NULL'
         );
-        console.log('Oficiales inactivos:', inactivos[0].count);
+        const inactivos = parseInt(inactivosResult.rows[0].count);
+        console.log('Oficiales inactivos:', inactivos);
+        
+        // Confirmar la transacción
+        await client.query('COMMIT');
         
         const result = {
-            activos: activos[0].count,
-            inactivos: inactivos[0].count
+            activos: activos,
+            inactivos: inactivos,
+            total: activos + inactivos
         };
         
         console.log('Enviando respuesta:', result);
-        res.json(result);
+        res.json({
+            success: true,
+            data: result
+        });
         
     } catch (error) {
+        // Revertir la transacción en caso de error
+        await client.query('ROLLBACK');
+        
         console.error('Error al obtener estadísticas de oficiales:');
         console.error('Mensaje de error:', error.message);
         console.error('Stack trace:', error.stack);
@@ -565,13 +649,28 @@ app.get('/api/oficiales/estadisticas', async (req, res) => {
             success: false, 
             message: 'Error al obtener estadísticas de oficiales',
             error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            details: process.env.NODE_ENV === 'development' ? {
+                code: error.code,
+                detail: error.detail,
+                hint: error.hint,
+                position: error.position,
+                internalPosition: error.internalPosition,
+                internalQuery: error.internalQuery,
+                where: error.where,
+                schema: error.schema,
+                table: error.table,
+                column: error.column,
+                dataType: error.dataType,
+                constraint: error.constraint,
+                file: error.file,
+                line: error.line,
+                routine: error.routine
+            } : undefined
         });
     } finally {
-        if (connection) {
-            console.log('Liberando conexión a la base de datos...');
-            await connection.release();
-        }
+        // Liberar el cliente de vuelta al pool
+        client.release();
+        console.log('Conexión a la base de datos liberada');
     }
 });
 
@@ -586,34 +685,30 @@ app.get('/api/oficiales/buscar', async (req, res) => {
         });
     }
     
+    const searchTerm = `%${termino}%`;
+    
     try {
-        const connection = await pool.getConnection();
-        const [rows] = await connection.query(
-            `SELECT id, nombre_completo, curp, cuip, cup, edad, sexo, 
-                    estado_civil, area_adscripcion, grado, cargo_actual, 
-                    fecha_ingreso, escolaridad, telefono_contacto, 
-                    telefono_emergencia, funcion, pdf_nombre_archivo, activo
+        const result = await pool.query(
+            `SELECT id, nombre_completo, curp, cuip, cup, grado, cargo_actual 
              FROM oficiales 
-             WHERE (nombre_completo LIKE ? OR curp LIKE ? OR cuip LIKE ? OR cup LIKE ?)
-             ORDER BY activo DESC, nombre_completo`,
-            [`%${termino}%`, `%${termino}%`, `%${termino}%`, `%${termino}%`]
+             WHERE nombre_completo ILIKE $1 
+                OR curp ILIKE $1 
+                OR cuip ILIKE $1 
+                OR cup ILIKE $1 
+                OR cargo_actual ILIKE $1 
+             ORDER BY nombre_completo 
+             LIMIT 50`,
+            [searchTerm]
         );
         
-        connection.release();
-        
-        // Mapear resultados para incluir la URL del archivo
-        const resultados = rows.map(oficial => ({
-            ...oficial,
-            pdf_url: oficial.pdf_nombre_archivo ? `/uploads/${oficial.pdf_nombre_archivo}` : null
-        }));
-        
-        res.json({ success: true, data: resultados });
+        res.json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error al buscar oficiales:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Error al buscar oficiales',
-            error: error.message 
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error : undefined
         });
     }
 });

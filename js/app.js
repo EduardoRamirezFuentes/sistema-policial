@@ -5,8 +5,12 @@ if (typeof Chart === 'undefined') {
     console.log('Chart.js cargado correctamente, versión:', Chart.version);
 }
 
-// URL base de la API
-const API_BASE_URL = 'http://localhost:8080/api';
+// Configuración de la API
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:8080/api' 
+  : 'https://sistema-policial.onrender.com/api';
+
+console.log('URL base de la API:', API_BASE_URL);
 
 // Credenciales estáticas
 const ADMIN_USERNAME = 'admin';
@@ -1442,36 +1446,41 @@ async function cargarGraficaEstadoOficiales() {
         
         // Verificar que los elementos existan
         if (!chartLoading) return mostrarError('No se encontró el indicador de carga');
-        if (!chartError) return mostrarError('No se encontró el contenedor de errores');
+        if (!chartError) console.warn('No se encontró el contenedor de errores');
         if (!contenedorContadores) return mostrarError('No se encontró el contenedor de contadores');
         if (!contadorActivos) return mostrarError('No se encontró el contador de activos');
         if (!contadorInactivos) return mostrarError('No se encontró el contador de inactivos');
-        if (!fechaActualizacion) return mostrarError('No se encontró el elemento de fecha de actualización');
+        if (!fechaActualizacion) console.warn('No se encontró el elemento de fecha de actualización');
         
         console.log('2. Mostrando indicador de carga...');
-        chartLoading.classList.remove('d-none');
-        chartError.classList.add('d-none');
-        contenedorContadores.classList.add('d-none');
+        chartLoading?.classList.remove('d-none');
+        chartError?.classList.add('d-none');
+        contenedorContadores?.classList.add('d-none');
         
         console.log('3. Realizando solicitud a la API...');
-        const response = await fetch('/api/oficiales/estadisticas');
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-        }
+        const response = await fetch(`${API_BASE_URL}/oficiales/estadisticas`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         
         console.log('4. Procesando respuesta...');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error en la respuesta:', errorText);
+            throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         console.log('Datos recibidos:', data);
         
-        if (typeof data.activos === 'undefined' || typeof data.inactivos === 'undefined') {
+        if (!data || typeof data !== 'object') {
             throw new Error('Formato de datos inválido');
         }
         
         console.log('5. Actualizando interfaz...');
-        contadorActivos.textContent = data.activos;
-        contadorInactivos.textContent = data.inactivos;
+        contadorActivos.textContent = data.activos || 0;
+        contadorInactivos.textContent = data.inactivos || 0;
         
         // Formatear fecha
         const ahora = new Date();
@@ -1484,15 +1493,19 @@ async function cargarGraficaEstadoOficiales() {
             second: '2-digit',
             hour12: true
         };
-        fechaActualizacion.textContent = ahora.toLocaleDateString('es-MX', opciones);
+        
+        if (fechaActualizacion) {
+            fechaActualizacion.textContent = ahora.toLocaleDateString('es-MX', opciones);
+        }
         
         console.log('6. Mostrando resultados...');
-        chartLoading.classList.add('d-none');
-        contenedorContadores.classList.remove('d-none');
+        chartLoading?.classList.add('d-none');
+        contenedorContadores?.classList.remove('d-none');
         
         console.log('=== Estadísticas cargadas correctamente ===');
         
     } catch (error) {
+        console.error('Error en cargarGraficaEstadoOficiales:', error);
         mostrarError(`Error al cargar las estadísticas: ${error.message}`);
     }
 }

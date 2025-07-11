@@ -68,33 +68,37 @@ const upload = multer({
 // Configuración de CORS mejorada
 const corsOptions = {
   origin: function (origin, callback) {
-    // En producción, verificar el origen
-    if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = [
-        'https://sistema-policial.onrender.com',
-        'http://localhost:10000',
-        'http://localhost:3000'
-      ];
-      
-      if (!origin) {
-        console.warn('⚠️  Petición sin encabezado Origin');
-        return callback(new Error('No se proporcionó el encabezado Origin'), false);
-      }
-      
-      // Verificar si el origen está en la lista blanca
-      const isAllowed = allowedOrigins.some(allowedOrigin => 
-        origin === allowedOrigin || 
-        origin.startsWith(allowedOrigin.replace(/\/+$/, ''))
-      );
-      
-      if (!isAllowed) {
-        console.warn(`🚫 Origen no permitido: ${origin}`);
-        return callback(new Error('Origen no permitido por CORS'), false);
-      }
+    // Lista de orígenes permitidos
+    const allowedOrigins = [
+      'https://sistema-policial.onrender.com',
+      'http://localhost:10000',
+      'http://localhost:3000',
+      'http://localhost:8080',
+      'https://sistema-policial.onrender.com/'
+    ];
+    
+    // Permitir peticiones sin encabezado Origin (como curl, Postman, etc.)
+    if (!origin) {
+      console.warn('⚠️  Petición sin encabezado Origin');
+      // En desarrollo, permitir sin Origin. En producción, descomentar la siguiente línea para forzar el encabezado
+      // return callback(new Error('Se requiere el encabezado Origin'), false);
+      return callback(null, true);
     }
     
-    // Permitir el acceso si estamos en desarrollo o si el origen está permitido
-    return callback(null, true);
+    // Verificar si el origen está en la lista blanca
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      // Eliminar barras finales para comparación
+      const cleanAllowed = allowedOrigin.replace(/\/+$/, '');
+      const cleanOrigin = origin.replace(/\/+$/, '');
+      return cleanOrigin === cleanAllowed || origin.startsWith(cleanAllowed);
+    });
+    
+    if (isAllowed) {
+      return callback(null, true);
+    } else {
+      console.warn(`🚫 Origen no permitido: ${origin}`);
+      return callback(new Error('Origen no permitido por CORS'), false);
+    }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],

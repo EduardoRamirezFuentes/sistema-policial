@@ -1295,7 +1295,7 @@ async function guardarEvaluacion(e) {
 
         console.log('Datos a enviar:', evaluacionData);
 
-        const response = await fetch(`${API_BASE_URL}/evaluaciones`, {
+        const response = await fetch(`${API_BASE_URL}/api/evaluaciones`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

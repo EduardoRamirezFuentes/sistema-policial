@@ -7,8 +7,8 @@ if (typeof Chart === 'undefined') {
 
 // Configuración de la API
 const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8080/api' 
-  : 'https://sistema-policial.onrender.com/api';
+  ? 'http://localhost:8080' 
+  : 'https://sistema-policial.onrender.com';
 
 console.log('URL base de la API:', API_BASE_URL);
 

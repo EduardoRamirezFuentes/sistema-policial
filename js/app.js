@@ -85,6 +85,28 @@ function checkAuth() {
     return localStorage.getItem('isLoggedIn') === 'true';
 }
 
+// Función para probar la conexión a la API
+document.addEventListener('DOMContentLoaded', () => {
+    const testBtn = document.getElementById('testBtn');
+    if (testBtn) {
+        testBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/test`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarMensaje('Conexión exitosa a la base de datos', 'success');
+                } else {
+                    mostrarMensaje('Error en la conexión: ' + result.message, 'danger');
+                }
+            } catch (error) {
+                console.error('Error al probar conexión:', error);
+                mostrarMensaje('Error al probar conexión: ' + error.message, 'danger');
+            }
+        });
+    }
+});
+
 // Función para mostrar el dashboard
 function showDashboard() {
     console.log('=== INICIO: Mostrando dashboard ===');

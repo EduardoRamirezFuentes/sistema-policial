@@ -85,6 +85,61 @@ function checkAuth() {
     return localStorage.getItem('isLoggedIn') === 'true';
 }
 
+// Función para mostrar mensaje
+function mostrarMensaje(mensaje, tipo) {
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+    alert.role = 'alert';
+    alert.innerHTML = `
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.login-container');
+    if (container) {
+        container.insertBefore(alert, container.firstChild);
+        setTimeout(() => alert.remove(), 5000);
+    }
+}
+
+// Función para iniciar sesión
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        // Guardar estado de inicio de sesión
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        // Ocultar formulario de login
+        loginContainer.style.display = 'none';
+        loginContainer.style.visibility = 'hidden';
+        loginContainer.style.opacity = '0';
+        
+        // Mostrar dashboard
+        dashboard.style.display = 'block';
+        dashboard.style.visibility = 'visible';
+        dashboard.style.opacity = '1';
+        
+        // Mostrar la pestaña Estatus Poli
+        const estatusPoliTab = document.querySelector('[data-page="estatus-poli"]');
+        if (estatusPoliTab) {
+            estatusPoliTab.click();
+        }
+        
+        // Cargar la gráfica de estado de oficiales después de un breve delay
+        setTimeout(async () => {
+            await cargarGraficaEstadoOficiales();
+        }, 500); // Esperar 500ms para que la pestaña se muestre completamente
+    } else {
+        mostrarMensaje('Credenciales incorrectas', 'danger');
+        document.getElementById('loginError').classList.remove('d-none');
+        document.getElementById('loginError').textContent = 'Credenciales incorrectas';
+    }
+});
+
 // Función para probar la conexión a la API
 document.addEventListener('DOMContentLoaded', () => {
     const testBtn = document.getElementById('testBtn');

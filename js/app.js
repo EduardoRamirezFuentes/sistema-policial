@@ -1264,44 +1264,58 @@ async function guardarEvaluacion(e) {
         return;
     }
     
-    const form = e.target;
-    const formData = new FormData(form);
-    const evaluacionData = Object.fromEntries(formData.entries());
-    
-    // Validar calificación
-    const calificacion = parseFloat(evaluacionData.calificacion);
-    if (isNaN(calificacion) || calificacion < 0 || calificacion > 100) {
-        mostrarMensaje('La calificación debe ser un número entre 0 y 100', 'error');
-        return;
-    }
-    
     // Mostrar indicador de carga
-    const submitBtn = form.querySelector('button[type="submit"]');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
     
     try {
-        const response = await fetch('/api/evaluaciones', {
+        // Crear el objeto de evaluación con los datos necesarios
+        const evaluacionData = {
+            id_oficial: oficialSeleccionado.id,
+            tipo_evaluacion: e.target['tipo_evaluacion'].value,
+            fecha_evaluacion: e.target['fecha_evaluacion'].value,
+            calificacion: e.target['calificacion'].value,
+            evaluador: e.target['evaluador'].value,
+            observaciones: e.target['observaciones'].value || null
+        };
+
+        // Validar calificación
+        const calificacion = parseFloat(evaluacionData.calificacion);
+        if (isNaN(calificacion) || calificacion < 0 || calificacion > 100) {
+            throw new Error('La calificación debe ser un número entre 0 y 100');
+        }
+
+        // Validar fecha
+        const fecha = new Date(evaluacionData.fecha_evaluacion);
+        if (isNaN(fecha.getTime())) {
+            throw new Error('Formato de fecha inválido');
+        }
+
+        console.log('Datos a enviar:', evaluacionData);
+
+        const response = await fetch(`${API_BASE_URL}/evaluaciones`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(evaluacionData)
         });
-        
+
         const data = await response.json();
-        
-        if (response.ok) {
-            mostrarMensaje('Evaluación guardada correctamente', 'success');
-            limpiarFormularioEvaluacion();
-            cargarEvaluaciones();
-        } else {
+
+        if (!response.ok) {
             throw new Error(data.message || 'Error al guardar la evaluación');
         }
-        
+
+        mostrarMensaje('Evaluación guardada correctamente', 'success');
+        limpiarFormularioEvaluacion();
+        cargarEvaluaciones();
+
     } catch (error) {
-        console.error('Error al guardar la evaluación:', error);
+        console.error('Error detallado:', error);
         mostrarMensaje(error.message || 'Error al guardar la evaluación', 'error');
     } finally {
         submitBtn.disabled = false;

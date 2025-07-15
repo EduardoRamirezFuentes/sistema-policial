@@ -198,31 +198,23 @@ app.post('/api/oficiales', upload.single('pdfFile'), async (req, res) => {
             `INSERT INTO oficiales (
                 nombre_completo, curp, cuip, cup, edad, sexo, estado_civil,
                 area_adscripcion, grado, cargo_actual, fecha_ingreso,
-                escolaridad, telefono_contacto, telefono_emergencia, funcion,
-                activo, pdf_nombre_archivo, usuario_registro
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-            RETURNING id`,
+                escolaridad, telefono_contacto, telefono_emergencia, funcion, ruta_pdf
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+            ) RETURNING id`,
             [
-                req.body.nombreCompleto,
-                req.body.curp,
-                req.body.cuip,
-                req.body.cup,
-                edad,
-                req.body.sexo,
-                req.body.estadoCivil,
-                req.body.areaAdscripcion,
-                req.body.grado,
-                req.body.cargoActual,
-                req.body.fechaIngreso,
-                req.body.escolaridad,
-                req.body.telefonoContacto.replace(/\D/g, ''), // Solo números
-                req.body.telefonoEmergencia.replace(/\D/g, ''), // Solo números
-                req.body.funcion,
-                true, // activo por defecto
-                req.file ? req.file.filename : null,
-                1 // ID del usuario administrador
+                req.body.nombreCompleto, req.body.curp.toUpperCase(), req.body.cuip.toUpperCase(), 
+                req.body.cup.toUpperCase(), parseInt(req.body.edad), req.body.sexo, 
+                req.body.estadoCivil, req.body.areaAdscripcion, req.body.grado, 
+                req.body.cargoActual, req.body.fechaIngreso, req.body.escolaridad, 
+                req.body.telefonoContacto, req.body.telefonoEmergencia, req.body.funcion,
+                req.file ? path.basename(req.file.path) : null
             ]
         );
+
+        if (!result.rows || result.rows.length === 0) {
+            throw new Error('No se pudo obtener el ID del oficial insertado');
+        }
 
         const idOficial = result.rows[0].id;
         console.log('Oficial guardado con ID:', idOficial);
@@ -288,75 +280,6 @@ app.post('/api/oficiales', upload.single('pdfFile'), async (req, res) => {
         });
     } finally {
         client.release();
-    }
-});
-
-// Ruta para cargar la página de formación
-app.get('/formacion', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'formacion.html'));
-});
-
-// Ruta para guardar un registro de formación
-app.post('/api/formacion', express.json(), async (req, res) => {
-    const formacion = req.body;
-    let connection;
-    
-    // Validar que se haya proporcionado el ID del oficial
-    if (!formacion.id_oficial) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'El ID del oficial es requerido' 
-        });
-    }
-    
-    try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-        
-        // Verificar que el oficial exista
-        const oficial = await pool.query(
-            'SELECT id FROM oficiales WHERE id = $1',
-            [formacion.id_oficial]
-        );
-        
-        if (oficial.rows.length === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'El oficial especificado no existe' 
-            });
-        }
-        
-        // Insertar el registro de formación
-        const result = await pool.query(
-            `INSERT INTO formacion 
-             (id_oficial, curso, tipo_curso, institucion, fecha_curso, resultado) 
-             VALUES ($1, $2, $3, $4, $5, $6) 
-             RETURNING id`,
-            [
-                formacion.id_oficial,
-                formacion.curso, 
-                formacion.tipo_curso, 
-                formacion.institucion, 
-                formacion.fecha_curso, 
-                formacion.resultado_curso
-            ]
-        );
-        
-        res.status(201).json({ 
-            success: true, 
-            message: 'Registro de formación guardado exitosamente',
-            id: result.rows[0].id 
-        });
-    } catch (error) {
-        if (connection) await connection.rollback();
-        console.error('Error al guardar el registro de formación:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al guardar el registro de formación',
-            error: error.message 
-        });
-    } finally {
-        if (connection) connection.release();
     }
 });
 
@@ -490,71 +413,12 @@ app.post('/api/competencias', upload.single('archivo_pdf'), async (req, res) => 
     }
 });
 
-// Ruta para guardar una evaluación
-app.post('/api/evaluaciones', express.json(), async (req, res) => {
-    const evaluacion = req.body;
-    
-    // Validar datos de entrada
-    if (!evaluacion.id_oficial || !evaluacion.tipo_evaluacion || !evaluacion.fecha_evaluacion || !evaluacion.evaluador) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Faltan campos requeridos: id_oficial, tipo_evaluacion, fecha_evaluacion y evaluador son obligatorios' 
-        });
-    }
-    
-    let connection;
-    try {
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-        
-        // Insertar la evaluación en la base de datos
-        const [result] = await connection.execute(
-            `INSERT INTO evaluaciones 
-             (id_oficial, tipo_evaluacion, fecha_evaluacion, calificacion, evaluador, observaciones, usuario_registro)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-                evaluacion.id_oficial,
-                evaluacion.tipo_evaluacion,
-                evaluacion.fecha_evaluacion, // Ya debe venir en formato YYYY-MM-DD
-                evaluacion.calificacion || null,
-                evaluacion.evaluador,
-                evaluacion.observaciones || null,
-                1 // usuario_registro temporal - en producción debería venir del usuario autenticado
-            ]
-        );
-        
-        await connection.commit();
-        connection.release();
-        
-        res.status(201).json({
-            success: true,
-            message: 'Evaluación guardada correctamente',
-            id: result.insertId
-        });
-        
-    } catch (error) {
-        if (connection) {
-            await connection.rollback();
-            connection.release();
-        }
-        
-        console.error('Error al guardar la evaluación:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error al guardar la evaluación',
-            error: error.message,
-            sqlState: error.sqlState,
-            sqlMessage: error.sqlMessage
-        });
-    }
-});
-
 // Ruta para obtener las evaluaciones
 app.get('/api/evaluaciones', async (req, res) => {
-    let connection;
+    const client = await pool.connect();
+    
     try {
-        connection = await pool.getConnection();
-        const [evaluaciones] = await connection.query(
+        const result = await client.query(
             `SELECT e.*, o.nombre_completo as nombre_oficial,
                     'Sistema' as nombre_usuario
              FROM evaluaciones e
@@ -562,10 +426,8 @@ app.get('/api/evaluaciones', async (req, res) => {
              ORDER BY e.fecha_evaluacion DESC, e.fecha_registro DESC`
         );
         
-        connection.release();
-        
         // Formatear fechas para mostrarlas correctamente
-        const evaluacionesFormateadas = evaluaciones.map(eval => ({
+        const evaluacionesFormateadas = result.rows.map(eval => ({
             ...eval,
             fecha_evaluacion: eval.fecha_evaluacion ? new Date(eval.fecha_evaluacion).toISOString().split('T')[0] : null,
             fecha_registro: eval.fecha_registro ? new Date(eval.fecha_registro).toISOString() : null
@@ -577,76 +439,135 @@ app.get('/api/evaluaciones', async (req, res) => {
         });
         
     } catch (error) {
-        if (connection) {
-            connection.release();
-        }
-        
         console.error('Error al obtener las evaluaciones:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener las evaluaciones',
-            error: error.message,
-            sqlState: error.sqlState,
-            sqlMessage: error.sqlMessage
+            error: error.message
         });
+    } finally {
+        client.release();
     }
 });
 
-// Ruta para actualizar el estado de un oficial
-app.put('/api/oficiales/:id/estado', async (req, res) => {
-    const { id } = req.params;
-    const { activo } = req.body;
-    
-    if (activo === undefined) {
-        return res.status(400).json({ success: false, message: 'El campo activo es requerido' });
-    }
-    
-    try {
-        const result = await pool.query(
-            'UPDATE oficiales SET activo = $1 WHERE id = $2 RETURNING *',
-            [activo, id]
-        );
-        
-        if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, message: 'Oficial no encontrado' });
-        }
-        
-        res.json({ success: true, message: 'Estado actualizado correctamente' });
-    } catch (error) {
-        console.error('Error al actualizar el estado del oficial:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al actualizar el estado del oficial',
-            error: error.message,
-            details: process.env.NODE_ENV === 'development' ? error : undefined
-        });
-    }
-});
-
-// Ruta para obtener estadísticas de oficiales (activos e inactivos)
-app.get('/api/oficiales/estadisticas', async (req, res) => {
-    console.log('Solicitud recibida en /api/oficiales/estadisticas');
+// Ruta para crear una nueva evaluación
+app.post('/api/evaluaciones', async (req, res) => {
     const client = await pool.connect();
     
     try {
-        console.log('Conexión a la base de datos establecida');
-        
-        // Iniciar una transacción para asegurar consistencia en los datos
         await client.query('BEGIN');
         
-        // Contar oficiales activos
-        console.log('Contando oficiales activos...');
-        const activosResult = await client.query(
-            'SELECT COUNT(*) as count FROM oficiales WHERE activo = true'
+        // Validar datos requeridos
+        const camposRequeridos = ['id_oficial', 'tipo_evaluacion', 'fecha_evaluacion', 'evaluador'];
+        const camposFaltantes = camposRequeridos.filter(campo => !req.body[campo]);
+        
+        if (camposFaltantes.length > 0) {
+            throw new Error(`Faltan campos requeridos: ${camposFaltantes.join(', ')}`);
+        }
+        
+        // Validar formato de fecha
+        const fecha = new Date(req.body.fecha_evaluacion);
+        if (isNaN(fecha.getTime())) {
+            throw new Error('Formato de fecha inválido');
+        }
+        
+        // Validar calificación si se proporciona
+        if (req.body.calificacion !== undefined) {
+            const calificacion = parseFloat(req.body.calificacion);
+            if (isNaN(calificacion) || calificacion < 0 || calificacion > 100) {
+                throw new Error('La calificación debe ser un número entre 0 y 100');
+            }
+        }
+        
+        // Insertar la evaluación
+        const result = await client.query(
+            `INSERT INTO evaluaciones (
+                id_oficial, tipo_evaluacion, fecha_evaluacion, calificacion, 
+                evaluador, observaciones, fecha_registro, usuario_registro
+            ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7)
+            RETURNING id`,
+            [
+                parseInt(req.body.id_oficial),
+                req.body.tipo_evaluacion,
+                req.body.fecha_evaluacion,
+                req.body.calificacion ? parseFloat(req.body.calificacion) : null,
+                req.body.evaluador,
+                req.body.observaciones || null,
+                1  // ID del usuario administrador
+            ]
         );
+        
+        await client.query('COMMIT');
+        
+        res.json({
+            success: true,
+            message: 'Evaluación guardada correctamente',
+            data: { id: result.rows[0].id }
+        });
+        
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error al guardar la evaluación:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al guardar la evaluación',
+            error: error.message
+        });
+    } finally {
+        client.release();
+    }
+});
+
+app.get('/api/evaluaciones', async (req, res) => {
+    const client = await pool.connect();
+    
+    try {
+        const result = await client.query(
+            `SELECT e.*, o.nombre_completo as nombre_oficial,
+                    'Sistema' as nombre_usuario
+             FROM evaluaciones e
+             JOIN oficiales o ON e.id_oficial = o.id
+             ORDER BY e.fecha_evaluacion DESC, e.fecha_registro DESC`
+        );
+        
+        // Formatear fechas para mostrarlas correctamente
+        const evaluacionesFormateadas = result.rows.map(eval => ({
+            ...eval,
+            fecha_evaluacion: eval.fecha_evaluacion ? new Date(eval.fecha_evaluacion).toISOString().split('T')[0] : null,
+            fecha_registro: eval.fecha_registro ? new Date(eval.fecha_registro).toISOString() : null
+        }));
+        
+        res.json({
+            success: true,
+            data: evaluacionesFormateadas
+        });
+        
+    } catch (error) {
+        console.error('Error al obtener las evaluaciones:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener las evaluaciones',
+            error: error.message
+        });
+    } finally {
+        client.release();
+    }
+});
+
+// Ruta para obtener estadísticas de oficiales
+app.get('/api/estadisticas', async (req, res) => {
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // Obtener el número de oficiales activos
+        const activosResult = await client.query('SELECT COUNT(*) FROM oficiales WHERE activo = TRUE');
         const activos = parseInt(activosResult.rows[0].count);
         console.log('Oficiales activos:', activos);
         
-        // Contar oficiales inactivos
-        console.log('Contando oficiales inactivos...');
-        const inactivosResult = await client.query(
-            'SELECT COUNT(*) as count FROM oficiales WHERE activo = false OR activo IS NULL'
-        );
+        // Obtener el número de oficiales inactivos
+        const inactivosResult = await client.query('SELECT COUNT(*) FROM oficiales WHERE activo = FALSE');
         const inactivos = parseInt(inactivosResult.rows[0].count);
         console.log('Oficiales inactivos:', inactivos);
         

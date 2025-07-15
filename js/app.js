@@ -85,173 +85,9 @@ function checkAuth() {
     return localStorage.getItem('isLoggedIn') === 'true';
 }
 
-// Función para mostrar mensaje
-function mostrarMensaje(mensaje, tipo) {
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${tipo} alert-dismissible fade show`;
-    alert.role = 'alert';
-    alert.innerHTML = `
-        ${mensaje}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    const container = document.querySelector('.login-container');
-    if (container) {
-        container.insertBefore(alert, container.firstChild);
-        setTimeout(() => alert.remove(), 5000);
-    }
-}
-
-// Función para iniciar sesión
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Guardar estado de inicio de sesión
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        // Ocultar formulario de login
-        loginContainer.style.display = 'none';
-        loginContainer.style.visibility = 'hidden';
-        loginContainer.style.opacity = '0';
-        
-        // Mostrar dashboard
-        dashboard.style.display = 'block';
-        dashboard.style.visibility = 'visible';
-        dashboard.style.opacity = '1';
-        
-        // Mostrar la pestaña Estatus Poli
-        const estatusPoliTab = document.querySelector('[data-page="estatus-poli"]');
-        if (estatusPoliTab) {
-            estatusPoliTab.click();
-        }
-        
-        // Cargar la gráfica de estado de oficiales después de un breve delay
-        setTimeout(async () => {
-            await cargarGraficaEstadoOficiales();
-        }, 500); // Esperar 500ms para que la pestaña se muestre completamente
-    } else {
-        mostrarMensaje('Credenciales incorrectas', 'danger');
-        document.getElementById('loginError').classList.remove('d-none');
-        document.getElementById('loginError').textContent = 'Credenciales incorrectas';
-    }
-});
-
-// Función para probar la conexión a la API
-document.addEventListener('DOMContentLoaded', () => {
-    const testBtn = document.getElementById('testBtn');
-    if (testBtn) {
-        testBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/test`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    mostrarMensaje('Conexión exitosa a la base de datos', 'success');
-                    // Cargar la gráfica de estado de oficiales
-                    await cargarGraficaEstadoOficiales();
-                } else {
-                    mostrarMensaje('Error en la conexión: ' + result.message, 'danger');
-                }
-            } catch (error) {
-                console.error('Error al probar conexión:', error);
-                mostrarMensaje('Error al probar conexión: ' + error.message, 'danger');
-            }
-        });
-    }
-});
-
-// Función para cargar la gráfica de estado de oficiales
-async function cargarGraficaEstadoOficiales() {
-    try {
-        const chartLoading = document.getElementById('chartLoading');
-        const chartError = document.getElementById('chartError');
-        
-        // Mostrar loading
-        chartLoading.classList.remove('d-none');
-        chartError.classList.add('d-none');
-        
-        // Obtener estadísticas de oficiales
-        const response = await fetch(`${API_BASE_URL}/api/estadisticas`);
-        const result = await response.json();
-        
-        if (!result.success) {
-            throw new Error(result.message || 'Error al obtener estadísticas');
-        }
-        
-        // Obtener elementos del DOM
-        const ctx = document.getElementById('estadoOficialesContadores');
-        const contadorActivos = document.getElementById('contadorActivos');
-        const contadorInactivos = document.getElementById('contadorInactivos');
-        const fechaActualizacion = document.getElementById('fechaActualizacion');
-        
-        if (!ctx) {
-            throw new Error('No se encontró el canvas para la gráfica');
-        }
-        
-        // Actualizar contadores
-        contadorActivos.textContent = result.data.activos || '0';
-        contadorInactivos.textContent = result.data.inactivos || '0';
-        fechaActualizacion.textContent = new Date().toLocaleString('es-MX');
-        
-        // Configurar y mostrar la gráfica
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Activos', 'Inactivos'],
-                datasets: [{
-                    data: [result.data.activos, result.data.inactivos],
-                    backgroundColor: ['#28a745', '#dc3545'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            font: {
-                                family: 'Poppins',
-                                size: 14
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed !== null) {
-                                    label += context.parsed.toLocaleString('es-MX');
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Ocultar loading
-        chartLoading.classList.add('d-none');
-        
-    } catch (error) {
-        console.error('Error al cargar la gráfica:', error);
-        chartLoading.classList.add('d-none');
-        chartError.classList.remove('d-none');
-        chartError.textContent = 'Error al cargar la gráfica: ' + error.message;
-    }
-}
-
 // Función para mostrar el dashboard
 function showDashboard() {
+    console.log('=== INICIO: Mostrando dashboard ===');
     
     // Obtener referencias a los elementos
     const loginContainer = document.getElementById('loginContainer');
@@ -1428,58 +1264,44 @@ async function guardarEvaluacion(e) {
         return;
     }
     
+    const form = e.target;
+    const formData = new FormData(form);
+    const evaluacionData = Object.fromEntries(formData.entries());
+    
+    // Validar calificación
+    const calificacion = parseFloat(evaluacionData.calificacion);
+    if (isNaN(calificacion) || calificacion < 0 || calificacion > 100) {
+        mostrarMensaje('La calificación debe ser un número entre 0 y 100', 'error');
+        return;
+    }
+    
     // Mostrar indicador de carga
-    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
     
     try {
-        // Crear el objeto de evaluación con los datos necesarios
-        const evaluacionData = {
-            id_oficial: oficialSeleccionado.id,
-            tipo_evaluacion: e.target['tipo_evaluacion'].value,
-            fecha_evaluacion: e.target['fecha_evaluacion'].value,
-            calificacion: e.target['calificacion'].value,
-            evaluador: e.target['evaluador'].value,
-            observaciones: e.target['observaciones'].value || null
-        };
-
-        // Validar calificación
-        const calificacion = parseFloat(evaluacionData.calificacion);
-        if (isNaN(calificacion) || calificacion < 0 || calificacion > 100) {
-            throw new Error('La calificación debe ser un número entre 0 y 100');
-        }
-
-        // Validar fecha
-        const fecha = new Date(evaluacionData.fecha_evaluacion);
-        if (isNaN(fecha.getTime())) {
-            throw new Error('Formato de fecha inválido');
-        }
-
-        console.log('Datos a enviar:', evaluacionData);
-
-        const response = await fetch(`${API_BASE_URL}/api/evaluaciones`, {
+        const response = await fetch('/api/evaluaciones', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
             },
             body: JSON.stringify(evaluacionData)
         });
-
+        
         const data = await response.json();
-
-        if (!response.ok) {
+        
+        if (response.ok) {
+            mostrarMensaje('Evaluación guardada correctamente', 'success');
+            limpiarFormularioEvaluacion();
+            cargarEvaluaciones();
+        } else {
             throw new Error(data.message || 'Error al guardar la evaluación');
         }
-
-        mostrarMensaje('Evaluación guardada correctamente', 'success');
-        limpiarFormularioEvaluacion();
-        cargarEvaluaciones();
-
+        
     } catch (error) {
-        console.error('Error detallado:', error);
+        console.error('Error al guardar la evaluación:', error);
         mostrarMensaje(error.message || 'Error al guardar la evaluación', 'error');
     } finally {
         submitBtn.disabled = false;
@@ -1624,41 +1446,36 @@ async function cargarGraficaEstadoOficiales() {
         
         // Verificar que los elementos existan
         if (!chartLoading) return mostrarError('No se encontró el indicador de carga');
-        if (!chartError) console.warn('No se encontró el contenedor de errores');
+        if (!chartError) return mostrarError('No se encontró el contenedor de errores');
         if (!contenedorContadores) return mostrarError('No se encontró el contenedor de contadores');
         if (!contadorActivos) return mostrarError('No se encontró el contador de activos');
         if (!contadorInactivos) return mostrarError('No se encontró el contador de inactivos');
-        if (!fechaActualizacion) console.warn('No se encontró el elemento de fecha de actualización');
+        if (!fechaActualizacion) return mostrarError('No se encontró el elemento de fecha de actualización');
         
         console.log('2. Mostrando indicador de carga...');
-        chartLoading?.classList.remove('d-none');
-        chartError?.classList.add('d-none');
-        contenedorContadores?.classList.add('d-none');
+        chartLoading.classList.remove('d-none');
+        chartError.classList.add('d-none');
+        contenedorContadores.classList.add('d-none');
         
         console.log('3. Realizando solicitud a la API...');
-        const response = await fetch(`${API_BASE_URL}/oficiales/estadisticas`, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+        const response = await fetch('/api/oficiales/estadisticas');
         
-        console.log('4. Procesando respuesta...');
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Error en la respuesta:', errorText);
-            throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+            throw new Error(`Error HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
         
+        console.log('4. Procesando respuesta...');
         const data = await response.json();
         console.log('Datos recibidos:', data);
         
-        if (!data || typeof data !== 'object') {
+        if (typeof data.activos === 'undefined' || typeof data.inactivos === 'undefined') {
             throw new Error('Formato de datos inválido');
         }
         
         console.log('5. Actualizando interfaz...');
-        contadorActivos.textContent = data.activos || 0;
-        contadorInactivos.textContent = data.inactivos || 0;
+        contadorActivos.textContent = data.activos;
+        contadorInactivos.textContent = data.inactivos;
         
         // Formatear fecha
         const ahora = new Date();
@@ -1671,19 +1488,15 @@ async function cargarGraficaEstadoOficiales() {
             second: '2-digit',
             hour12: true
         };
-        
-        if (fechaActualizacion) {
-            fechaActualizacion.textContent = ahora.toLocaleDateString('es-MX', opciones);
-        }
+        fechaActualizacion.textContent = ahora.toLocaleDateString('es-MX', opciones);
         
         console.log('6. Mostrando resultados...');
-        chartLoading?.classList.add('d-none');
-        contenedorContadores?.classList.remove('d-none');
+        chartLoading.classList.add('d-none');
+        contenedorContadores.classList.remove('d-none');
         
         console.log('=== Estadísticas cargadas correctamente ===');
         
     } catch (error) {
-        console.error('Error en cargarGraficaEstadoOficiales:', error);
         mostrarError(`Error al cargar las estadísticas: ${error.message}`);
     }
 }

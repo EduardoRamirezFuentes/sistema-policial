@@ -96,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (result.success) {
                     mostrarMensaje('Conexión exitosa a la base de datos', 'success');
+                    // Cargar la gráfica de estado de oficiales
+                    await cargarGraficaEstadoOficiales();
                 } else {
                     mostrarMensaje('Error en la conexión: ' + result.message, 'danger');
                 }
@@ -107,9 +109,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Función para cargar la gráfica de estado de oficiales
+async function cargarGraficaEstadoOficiales() {
+    try {
+        const chartLoading = document.getElementById('chartLoading');
+        const chartError = document.getElementById('chartError');
+        
+        // Mostrar loading
+        chartLoading.classList.remove('d-none');
+        chartError.classList.add('d-none');
+        
+        // Obtener estadísticas de oficiales
+        const response = await fetch(`${API_BASE_URL}/api/estadisticas`);
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Error al obtener estadísticas');
+        }
+        
+        // Obtener elementos del DOM
+        const ctx = document.getElementById('estadoOficialesContadores');
+        const contadorActivos = document.getElementById('contadorActivos');
+        const contadorInactivos = document.getElementById('contadorInactivos');
+        const fechaActualizacion = document.getElementById('fechaActualizacion');
+        
+        if (!ctx) {
+            throw new Error('No se encontró el canvas para la gráfica');
+        }
+        
+        // Actualizar contadores
+        contadorActivos.textContent = result.data.activos || '0';
+        contadorInactivos.textContent = result.data.inactivos || '0';
+        fechaActualizacion.textContent = new Date().toLocaleString('es-MX');
+        
+        // Configurar y mostrar la gráfica
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Activos', 'Inactivos'],
+                datasets: [{
+                    data: [result.data.activos, result.data.inactivos],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                family: 'Poppins',
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed.toLocaleString('es-MX');
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Ocultar loading
+        chartLoading.classList.add('d-none');
+        
+    } catch (error) {
+        console.error('Error al cargar la gráfica:', error);
+        chartLoading.classList.add('d-none');
+        chartError.classList.remove('d-none');
+        chartError.textContent = 'Error al cargar la gráfica: ' + error.message;
+    }
+}
+
 // Función para mostrar el dashboard
 function showDashboard() {
-    console.log('=== INICIO: Mostrando dashboard ===');
     
     // Obtener referencias a los elementos
     const loginContainer = document.getElementById('loginContainer');

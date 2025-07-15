@@ -487,7 +487,7 @@ app.post('/api/evaluaciones', async (req, res) => {
             ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, $7)
             RETURNING id`,
             [
-                parseInt(req.body.id_oficial),
+                req.body.id_oficial,  // Mantener como string
                 req.body.tipo_evaluacion,
                 req.body.fecha_evaluacion,
                 req.body.calificacion ? parseFloat(req.body.calificacion) : null,
